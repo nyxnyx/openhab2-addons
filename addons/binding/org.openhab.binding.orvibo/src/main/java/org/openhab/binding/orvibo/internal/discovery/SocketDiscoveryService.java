@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import com.github.tavalin.orvibo.devices.DeviceType;
+import com.github.tavalin.orvibo.devices.OrviboDevice;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
@@ -23,9 +25,8 @@ import org.openhab.binding.orvibo.OrviboBindingConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.tavalin.s20.S20Client;
-import com.github.tavalin.s20.S20Client.SocketDiscoveryListener;
-import com.github.tavalin.s20.Socket;
+import com.github.tavalin.orvibo.OrviboClient;
+import com.github.tavalin.orvibo.OrviboClient.OrviboDiscoveryListener;
 
 /**
  * The {@link SocketDiscoveryService} class defines a service used
@@ -33,13 +34,13 @@ import com.github.tavalin.s20.Socket;
  *
  * @author Daniel Walters - Initial contribution
  */
-public class SocketDiscoveryService extends AbstractDiscoveryService implements SocketDiscoveryListener {
+public class SocketDiscoveryService extends AbstractDiscoveryService implements OrviboDiscoveryListener {
 
     private final Logger logger = LoggerFactory.getLogger(SocketDiscoveryService.class);
     private static final int SEARCH_TIME = 60;
-    private S20Client s20Client;
+    private OrviboClient orviboClient;
 
-    public SocketDiscoveryService() throws SocketException {
+    public SocketDiscoveryService() {
         super(getSupportedThingTypeUIDs(), SEARCH_TIME);
     }
 
@@ -50,7 +51,7 @@ public class SocketDiscoveryService extends AbstractDiscoveryService implements 
     @Override
     protected void activate(Map<String, Object> configProperties) {
         try {
-            s20Client = S20Client.getInstance();
+            orviboClient = OrviboClient.getInstance();
             super.activate(configProperties);
         } catch (SocketException ex) {
             logger.error("Error occurred while activating S20 discovery service: {}", ex.getMessage(), ex);
@@ -59,13 +60,13 @@ public class SocketDiscoveryService extends AbstractDiscoveryService implements 
 
     @Override
     protected void startScan() {
-        if (s20Client != null) {
+        if (orviboClient != null) {
             logger.debug("starting manual scan");
-            s20Client.addSocketDiscoveryListener(this);
-            s20Client.globalDiscovery();
-            for (final Socket socket : s20Client.getAllSockets().values()) {
-                doThingDiscovered(socket);
-            }
+            orviboClient.addDeviceDiscoveryListener(this);
+            orviboClient.globalDiscovery();
+//            for (final Socket socket : orviboClient.getAllSockets().values()) {
+//                doThingDiscovered(socket);
+//            }
         } else {
             logger.debug("Client not initialised");
         }
@@ -73,10 +74,10 @@ public class SocketDiscoveryService extends AbstractDiscoveryService implements 
 
     @Override
     protected void startBackgroundDiscovery() {
-        if (s20Client != null) {
+        if (orviboClient != null) {
             logger.debug("starting automatic background scan");
-            s20Client.addSocketDiscoveryListener(this);
-            s20Client.globalDiscovery();
+            orviboClient.addDeviceDiscoveryListener(this);
+            orviboClient.globalDiscovery();
         } else {
             logger.debug("Client not initialised");
         }
@@ -84,32 +85,38 @@ public class SocketDiscoveryService extends AbstractDiscoveryService implements 
 
     @Override
     protected void stopBackgroundDiscovery() {
-        s20Client.removeSocketDiscoveryListener(this);
+        orviboClient.removeDeviceDiscoveryListener(this);
     }
 
-    @Override
-    public void socketDiscovered(Socket socket) {
-        doThingDiscovered(socket);
-    }
-
-    private DiscoveryResult createDiscoveryResult(Socket socket) {
-        ThingUID thingUID = getUID(socket);
-        String label = socket.getLabel();
+    private DiscoveryResult createDiscoveryResult(OrviboDevice device) {
+        ThingUID thingUID = getUID(device);
+        String label = device.getLabel();
         if (StringUtils.isBlank(label)) {
-            label = "S20";
+            label = "UNKNOWN_DEVICE_TYPE";
         }
         return DiscoveryResultBuilder.create(thingUID).withLabel(label)
-                .withProperty(OrviboBindingConstants.CONFIG_PROPERTY_DEVICE_ID, socket.getDeviceId()).build();
+                .withProperty(OrviboBindingConstants.CONFIG_PROPERTY_DEVICE_ID, device.getDeviceId()).build();
     }
 
-    private ThingUID getUID(Socket socket) {
-        ThingUID thingUID = new ThingUID(OrviboBindingConstants.THING_TYPE_S20, socket.getDeviceId());
+    private ThingUID getUID(OrviboDevice device) {
+
+        ThingUID thingUID = null;
+
+        if(device.getDeviceType()== DeviceType.ALLONE) {
+            thingUID = new ThingUID(OrviboBindingConstants.THING_TYPE_ALLONE, device.getDeviceId());
+        } else if (device.getDeviceType() == DeviceType.SOCKET) {
+            thingUID = new ThingUID(OrviboBindingConstants.THING_TYPE_S20, device.getDeviceId());
+        }
         return thingUID;
     }
 
-    private void doThingDiscovered(Socket socket) {
-        DiscoveryResult discoveryResult = createDiscoveryResult(socket);
+    private void doThingDiscovered(OrviboDevice device) {
+        DiscoveryResult discoveryResult = createDiscoveryResult(device);
         thingDiscovered(discoveryResult);
     }
 
+    @Override
+    public void deviceDiscovered(OrviboDevice orviboDevice) {
+        doThingDiscovered(orviboDevice);
+    }
 }

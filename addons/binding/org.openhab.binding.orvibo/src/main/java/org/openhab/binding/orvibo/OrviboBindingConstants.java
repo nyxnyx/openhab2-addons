@@ -22,6 +22,7 @@ public class OrviboBindingConstants {
 
     // List of all Thing Type UIDs
     public static final ThingTypeUID THING_TYPE_S20 = new ThingTypeUID(BINDING_ID, "s20");
+    public static final ThingTypeUID THING_TYPE_ALLONE = new ThingTypeUID(BINDING_ID, "allone");
 
     // List of all Channel ids
     public static final String CHANNEL_S20_SWITCH = "power";

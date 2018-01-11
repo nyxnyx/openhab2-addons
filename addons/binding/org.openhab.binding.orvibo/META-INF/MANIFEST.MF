@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-Activator: org.openhab.binding.orvibo.internal.OrviboActivator
 Bundle-ClassPath: 
  .,
- lib/s20-sdk-0.0.6-SNAPSHOT.jar
+ lib/orvibo-sdk-1.1.2-SNAPSHOT.jar
 Bundle-ManifestVersion: 2
 Bundle-Name: Orvibo Binding
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8

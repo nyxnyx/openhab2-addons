@@ -8,10 +8,9 @@
  */
 package org.openhab.binding.orvibo.internal;
 
+import com.github.tavalin.orvibo.OrviboClient;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-
-import com.github.tavalin.s20.S20Client;
 
 /**
  * Bundle activator for the Orvibo Binding.
@@ -21,17 +20,17 @@ import com.github.tavalin.s20.S20Client;
  */
 public class OrviboActivator implements BundleActivator {
 
-    private S20Client s20Client;
+    private OrviboClient orviboClient;
 
     @Override
     public void start(BundleContext context) throws Exception {
-        s20Client = S20Client.getInstance();
-        s20Client.connect();
+        orviboClient = OrviboClient.getInstance();
+        orviboClient.connect();
     }
 
     @Override
-    public void stop(BundleContext context) throws Exception {
-        s20Client.disconnect();
+    public void stop(BundleContext context) {
+        orviboClient.disconnect();
     }
 
 }

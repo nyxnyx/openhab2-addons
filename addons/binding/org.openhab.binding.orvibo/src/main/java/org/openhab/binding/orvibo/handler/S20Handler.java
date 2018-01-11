@@ -14,6 +14,9 @@ import java.net.SocketException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.github.tavalin.orvibo.OrviboClient;
+import com.github.tavalin.orvibo.devices.Socket;
+import com.github.tavalin.orvibo.entities.Types;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -24,10 +27,7 @@ import org.eclipse.smarthome.core.types.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.tavalin.s20.S20Client;
-import com.github.tavalin.s20.Socket;
-import com.github.tavalin.s20.Socket.SocketStateListener;
-import com.github.tavalin.s20.entities.Types.PowerState;
+import com.github.tavalin.orvibo.devices.Socket.SocketStateListener;
 
 /**
  * The {@link S20Handler} is responsible for handling commands, which are
@@ -39,7 +39,7 @@ public class S20Handler extends BaseThingHandler implements SocketStateListener 
 
     private Logger logger = LoggerFactory.getLogger(S20Handler.class);
     private Socket socket;
-    private S20Client client;
+    private OrviboClient client;
     private ScheduledFuture<?> subscribeHandler;
     private long refreshInterval = 15;
     private Runnable subscribeTask = new Runnable() {
@@ -69,25 +69,25 @@ public class S20Handler extends BaseThingHandler implements SocketStateListener 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         if (channelUID.getId().equals(CHANNEL_S20_SWITCH)) {
-            try {
+            /*try {*/
                 if (command == OnOffType.ON) {
                     socket.on();
                 } else if (command == OnOffType.OFF) {
                     socket.off();
                 }
-            } catch (SocketException e) {
+            /*} catch (Exception e) {
                 logger.error("Error issuing command {} to socket {}", command, channelUID.getId());
-            }
+            }*/
         }
     }
 
     private void configure() {
         try {
-            client = S20Client.getInstance();
+            client = OrviboClient.getInstance();
             String deviceId = thing.getUID().getId();
             socket = client.socketWithDeviceId(deviceId);
             socket.addSocketStateListener(this);
-            socket.findOnNetwork();
+            socket.find();
             subscribeHandler = scheduler.scheduleWithFixedDelay(subscribeTask, 0, refreshInterval, TimeUnit.SECONDS);
             updateStatus(ThingStatus.ONLINE);
         } catch (SocketException ex) {
@@ -104,12 +104,12 @@ public class S20Handler extends BaseThingHandler implements SocketStateListener 
     }
 
     @Override
-    public void socketDidChangePowerState(Socket socket, PowerState state) {
-        logger.debug("Received power state: {}", state);
+    public void socketDidChangePowerState(Socket socket, Types.PowerState powerState) {
+        logger.debug("Received power state: {}", powerState);
         if (socket.getDeviceId().equals(thing.getUID().getId())) {
-            if (state == PowerState.ON) {
+            if (powerState == Types.PowerState.ON) {
                 updateState(CHANNEL_S20_SWITCH, OnOffType.ON);
-            } else if (state == PowerState.OFF) {
+            } else if (powerState == Types.PowerState.OFF) {
                 updateState(CHANNEL_S20_SWITCH, OnOffType.OFF);
             }
         }
